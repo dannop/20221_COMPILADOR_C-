@@ -8,7 +8,7 @@ num = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 p = re.compile(r'(\d+(\.\d+)?([E][+|-]?\d+)?)')
 
-scripty, filename = argv
+filename = argv
 
 #file = open(filename)
 comment_count = 0
@@ -73,19 +73,19 @@ for line in open(filename):
     print("Input: %s" % (line)),
     
     while line[i] != '\n': #i and enumerate allows to iterate through line
-      if line[i] is '/':
-        if line[i + 1] is '/' and comment_count is 0: # it's a line comment print it out
+      if line[i] == '/':
+        if line[i + 1] == '/' and comment_count == 0: # it's a line comment print it out
           line_comment += 1
-        elif line[i + 1] is '*':
+        elif line[i + 1] == '*':
           i += 1
           comment_count += 1
-      elif (line[i] is '*') and (line[i+1] is '/') and comment_count > 0: 
+      elif (line[i] == '*') and (line[i+1] == '/') and comment_count > 0: 
         comment_count -= 1 
         i += 1
         if comment_count == 0:
           end_comment = True
 
-      if comment_count is 0 and line_comment is 0 and end_comment == False:
+      if comment_count == 0 and line_comment == 0 and end_comment == False:
         if is_digit(line[i]): #check for float
           j = i
           while not is_delim(line[j]):
@@ -100,14 +100,14 @@ for line in open(filename):
             iden += line[i]
         if is_delim(line[i]) and iden == '': #for delims w/ blank space
             which_delim(line[i])
-        if is_oper(line[i]) and iden is '':
+        if is_oper(line[i]) and iden == '':
           temp = line[i] + line[i + 1]
           if(is_oper(temp)):
             print(temp)
             i += 1
           else:
             print(line[i])
-        if not is_char(line[i]) and not is_digit(line[i]) and not is_oper(line[i]) and iden is not '' and not is_delim(line[i]):
+        if not is_char(line[i]) and not is_digit(line[i]) and not is_oper(line[i]) and iden != '' and not is_delim(line[i]):
           if is_keyword(iden):
             print("keyword: %s" % iden)
             print("ERROR: %s" % line[i])
