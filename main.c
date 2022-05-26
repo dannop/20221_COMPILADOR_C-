@@ -1,7 +1,4 @@
-/*
- * A program to perform Euclid's algorithm to computer
- *  the greatest common denominator (GCD) of a pair of integers. 
- */
+// A program to perform Euclid's algorithm to computer the greatest common denominator (GCD) of a pair of integers.
 
 int gcd(int u, int v)
 {
