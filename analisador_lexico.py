@@ -1,6 +1,3 @@
-# Com esse modulo conseguimos usar operaões para correspondência de expressões regulares
-import re
-
 f = open('main.c','r')
 
 operadores = { 
