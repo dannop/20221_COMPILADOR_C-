@@ -9,14 +9,14 @@ PALAVRAS_RESERVADAS = {
   'while': TokenType.WHILE
 }
 
-PALAVRAS_BOOLENAS = {
-
-}
-
-PALAVRAS_SENSITIVAS = {
-
-}
-
 OPERADORES = { 
-  
+
+}
+
+COMENTARIOS = {
+
+}
+
+SIMBOLOS = {
+
 }

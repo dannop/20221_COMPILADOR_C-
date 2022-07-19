@@ -11,10 +11,14 @@ def leArquivo(nome):
   except FileNotFoundError:
     raise FileNotFoundError('Arquivo não encontrado.')
 
-if __name__ == "__main__":
+def main():
   if len(sys.argv) == 2:
     nome_arquivo = sys.argv[1]
     programa = leArquivo(nome_arquivo)
-    Scanner(programa).analisar()
+    tokens = Scanner(programa).geraTokens()
+    print(tokens)
   else:
     print('Não foi passado arquivo de entrada.')
+
+if __name__ == "__main__":
+  main()
