@@ -1,112 +1,122 @@
-from token import Token
-from token_type import TokenType
+from token_type import PALAVRAS_RESERVADAS, Token, TokenType
+from string import ascii_letters
 
 class Scanner:
   def __init__(self, arquivo):
     self.arquivo = arquivo
+    self.arquivo_linhas = sum(1 for linha in arquivo)
+    self.tokens = []
     # String da linha atual
     self.linha_atual = arquivo[0]
     # Posicao da analise da linha atual
-    self.linha_pos = -1
+    self.linha_pos = 0
     # Contador de linhas verificadas
-    self.linha_cont = -1
-
-  def pegaProxValor(self):
-    if not self.linha_atual or self.linha_pos >= len(self.linha_atual):
-      raise Exception("Houve um problema ao ler o próximo valor de uma linha.")
-    return self.linha_atual[self.linha_pos]
+    self.linha_cont = 0
 
   def avancaLinha(self):
-    nova_pos = self.linha_cont+1
-    self.linha_atual = self.arquivo[nova_pos]
-    self.linha_pos = -1
-    self.linha_cont = nova_pos
-    print("{}: {}".format(self.linha_cont, self.linha_atual))
-
+    if self.linha_cont+1 > 0:
+      print("{}: {}".format(self.linha_cont+1, self.arquivo[self.linha_cont]))
+    
+    try:
+      nova_linha = self.linha_cont+1
+      self.linha_cont = nova_linha
+      self.linha_atual = self.arquivo[nova_linha]
+      self.linha_pos = 0
+      return self.linha_atual[self.linha_pos]
+    except:
+      return 'EOF'
+   
+    # nova_linha = self.linha_cont+1
+    # self.linha_cont = nova_linha
+    
+    # if nova_linha < self.arquivo_linhas:
+    #   self.linha_atual = self.arquivo[nova_linha]
+    #   self.linha_pos = -1
+    #   return self.linha_atual[self.linha_pos]
+    # else:
+    #   return 'EOF'
+      
   def avancaPos(self): 
     try:
-      self.linha_pos += 1
-      return self.linha_atual[self.linha_pos]
+      nova_pos = self.linha_pos + 1
+      # print("linha atual {} // posicao atual {} // char atual ->{}<- \n".format(self.linha_cont, self.linha_pos, self.linha_atual[nova_pos]))
+      self.linha_pos = nova_pos
+      return self.linha_atual[nova_pos]
     except: 
-      try: 
-        self.avancaLinha()
-      except:
-        return 'EOF'
-
+      # try: 
+      #   self.avancaLinha()
+      # except:
+      #   return 'EOF'
+    
       return self.avancaLinha()
-  
+
+  def voltaPos(self):
+    self.linha_pos -= 1
+
   def completaInt(self, valor):
     c = self.avancaPos()
     while c.isnumeric():
-      valor += c
+      valor += str(c)
       c = self.avancaPos()
-
+  
+    self.voltaPos()
     return valor
 
   def completaID(self, valor):
     c = self.avancaPos()
-    print("valor")
-    print(valor)
-    while c != "\"":
+    while c in ascii_letters:
       valor += c
       c = self.avancaPos()
-    valor += c
-
+    
+    self.voltaPos()
     return valor 
+
+  def completaComentario(self, valor):
+    return valor
 
   def analisaToken(self): 
     c = self.avancaPos()
-    
-    if c == '\n' or c == ' ' or c == '\t' or c == 'FIM':
+    if c == ' ' or c == '\n' or c == '\t' or c == None or c == 'EOF':
       return None
 
     tipo = None 
     valor = c
-    if c.isalpha():
-      tipo = TokenType.ID
-      valor = self.completaID(c)
-    elif c.isnumeric():
-      tipo = TokenType.INT
-      valor = self.completaInt(c)
-    elif c == '>':
-      c += self.avancaPos()
+    
+    if c == '>':
+      c = self.avancaPos()
       if c == '=':
-        tipo = TokenType.GREAT_EQUAL
+        valor += c
+        tipo = TokenType.MAIOR_IGUAL
       else:
-        tipo = TokenType.GREAT
+        self.voltaPos()
+        tipo = TokenType.MAIOR
     elif c == '<':
-      c += self.avancaPos()
+      c = self.avancaPos()
       if c == '=':
-        tipo = TokenType.LESS_EQUAL
+        valor += c
+        tipo = TokenType.MENOR_IGUAL
       else:
-        tipo = TokenType.LESS
+        self.voltaPos()
+        tipo = TokenType.MENOR
     elif c == '=':
-      c += self.avancaPos()
+      c = self.avancaPos()
       if c == '=':
-        tipo = TokenType.EQUAL
+        valor += c
+        tipo = TokenType.IGUAL
       else:
-        tipo = TokenType.ATTR
+        self.voltaPos()
+        tipo = TokenType.ATRIBUI
     elif c == '!':
-      c += self.avancaPos()
+      c = self.avancaPos()
       if c == '=':
+        valor += c
         tipo = TokenType.DIF
       else:
+        self.voltaPos()
         tipo = TokenType.ERROR
     elif c == '/':
-      if c == '*':
-        pass
-        # if c == '*':
-        #   if c == '/':
-        #     token_string = ''
-        #   elif c == 'EOF':
-        #     tipo = TokenType.EOF
-        #   else:
-        #     state = StateType.COMMENT
-        # elif c == 'EOF':
-        #   tipo = TokenType.EOF
-      else:
-        self.avancaPos()
-        tipo = TokenType.DIV
+      tipo = TokenType.DIV
+      c = self.completaComentario(c)
     elif c == '+':
       tipo = TokenType.MAIS
     elif c == '-':
@@ -118,28 +128,35 @@ class Scanner:
     elif c == ',':
       tipo = TokenType.VIRGULA
     elif c == '(':
-      tipo = TokenType.PARENT_OP
+      tipo = TokenType.PARENTESE_ABRE
     elif c == ')':
-      tipo = TokenType.PARENT_ED
+      tipo = TokenType.PARENTESE_FECHA
     elif c == '[':
-      tipo = TokenType.COLCH_OP
+      tipo = TokenType.COLCHETE_ABRE
     elif c == ']':
-      tipo = TokenType.COLCH_ED
+      tipo = TokenType.COLCHETE_FECHA
     elif c == '{':
-      tipo = TokenType.CHAVES_OP
+      tipo = TokenType.CHAVE_ABRE
     elif c == '}':
-      tipo = TokenType.CHAVES_ED
+      tipo = TokenType.CHAVE_FECHA
     elif c == 'EOF':
       tipo = TokenType.EOF
+    elif c.isnumeric():
+      tipo = TokenType.INT
+      valor = self.completaInt(c)
+    elif c in ascii_letters:
+      tipo = TokenType.ID
+      valor = self.completaID(c)
+      if valor in list(PALAVRAS_RESERVADAS.keys()):
+        tipo = PALAVRAS_RESERVADAS[valor]
 
     return Token(valor, tipo, self.linha_cont, self.linha_pos)
 
   def geraTokens(self):
-    tokens = []
-    while self.linha_atual:
-      print("Dentro do while")
+    print(self.arquivo_linhas)
+    while self.linha_atual and self.linha_cont < self.arquivo_linhas:
       token = self.analisaToken()
       if token is not None:
-        tokens.append(token)
+        self.tokens.append(token)
     
-    return tokens
+    return self.tokens
