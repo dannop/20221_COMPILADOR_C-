@@ -16,8 +16,8 @@ def main():
     nome_arquivo = sys.argv[1]
     programa = leArquivo(nome_arquivo)
     tokens = Scanner(programa).geraTokens()
-    print("Numero de tokens: {}".format(len(tokens)))
     print("Tokens", tokens)
+    print("Numero de tokens: {}".format(len(tokens)))
   else:
     print('Não foi passado arquivo de entrada.')
 

@@ -9,7 +9,7 @@ class Scanner:
     # String da linha atual
     self.linha_atual = arquivo[0]
     # Posicao da analise da linha atual
-    self.linha_pos = 0
+    self.linha_pos = -1
     # Contador de linhas verificadas
     self.linha_cont = 0
 
@@ -25,16 +25,6 @@ class Scanner:
       return self.linha_atual[self.linha_pos]
     except:
       return 'EOF'
-   
-    # nova_linha = self.linha_cont+1
-    # self.linha_cont = nova_linha
-    
-    # if nova_linha < self.arquivo_linhas:
-    #   self.linha_atual = self.arquivo[nova_linha]
-    #   self.linha_pos = -1
-    #   return self.linha_atual[self.linha_pos]
-    # else:
-    #   return 'EOF'
       
   def avancaPos(self): 
     try:
@@ -43,11 +33,6 @@ class Scanner:
       self.linha_pos = nova_pos
       return self.linha_atual[nova_pos]
     except: 
-      # try: 
-      #   self.avancaLinha()
-      # except:
-      #   return 'EOF'
-    
       return self.avancaLinha()
 
   def voltaPos(self):
@@ -72,6 +57,12 @@ class Scanner:
     return valor 
 
   def completaComentario(self, valor):
+    c = self.avancaPos()
+    while valor[-2:] != '*/':
+      valor += c
+      c = self.avancaPos()
+
+    self.voltaPos()
     return valor
 
   def analisaToken(self): 
@@ -116,7 +107,12 @@ class Scanner:
         tipo = TokenType.ERROR
     elif c == '/':
       tipo = TokenType.DIV
-      c = self.completaComentario(c)
+      c = self.avancaPos()
+      if c == '*':
+        tipo = TokenType.COMENTARIO
+        valor = self.completaComentario(valor+c)
+      else: 
+        self.voltaPos()
     elif c == '+':
       tipo = TokenType.MAIS
     elif c == '-':
@@ -153,8 +149,7 @@ class Scanner:
     return Token(valor, tipo, self.linha_cont, self.linha_pos)
 
   def geraTokens(self):
-    print(self.arquivo_linhas)
-    while self.linha_atual and self.linha_cont < self.arquivo_linhas:
+    while self.linha_cont < self.arquivo_linhas:
       token = self.analisaToken()
       if token is not None:
         self.tokens.append(token)

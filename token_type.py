@@ -43,6 +43,7 @@ class TokenType(Enum):
   VOID = 28
   WHILE = 29
   ERROR = 30
+  COMENTARIO = 31
 
 PALAVRAS_RESERVADAS = {
   "if": TokenType.IF, 
