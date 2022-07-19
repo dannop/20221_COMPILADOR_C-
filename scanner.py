@@ -53,7 +53,7 @@ class Scanner:
       valor += c
       c = self.avancaPos()
       if c.isnumeric():
-        print("O ID não pode conter número na sequencia.")
+        print("Houve um problema na linha {} na posicao {}: Sua declaração não pode conter números.".format(self.linha_cont+1, self.linha_pos+1))
         exit(1)
     
     self.voltaPos()
