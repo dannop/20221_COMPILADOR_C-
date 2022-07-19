@@ -52,6 +52,9 @@ class Scanner:
     while c in ascii_letters:
       valor += c
       c = self.avancaPos()
+      if c.isnumeric():
+        print("O ID não pode conter número na sequencia.")
+        exit(1)
     
     self.voltaPos()
     return valor 
