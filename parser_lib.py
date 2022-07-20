@@ -5,18 +5,37 @@ from bnf_type import BNFType
 class Parser:
   def __init__(self, tokens):
     self.tokens = tokens
+    self.token_index = 0
+    self.token_atual = self.tokens[self.token_index]
     self.token_anterior = [None, None, None]
     self.ids_declarados = []
+    
+  def avancaToken(self):
+    novo_index = self.token_index + 1
+    self.token_index = novo_index
+    self.token_atual = self.tokens[novo_index]
+
+    return self.token_atual
 
   def validaToken(self, token_esperado):
-    if self.tokens[0].tipo == token_esperado:
-      self.tokens = self.tokens.pop(0)
-    else:
-      print("Houve um problema na linha {} na posicao {}: Deveria ter um {} no lugar de {}.".format(self.tokens[2].linha, self.tokens[2].pos, token_esperado, self.tokens[1].tipo))
-      exit(1)  
+    print("Token Atual", self.token_atual)
+    if self.token_atual.tipo == token_esperado:
+      if token_esperado == TokenType.ID:
+        self.ids_declarados.append(self.token_atual)
+      token = self.token_atual
+      self.avancaToken()
 
-  def exe(self):
-    return self.programa()
+      return token
+    else:
+      self.mostraErro(token_esperado, self.token_atual)
+
+  def erroValidacao(self, tipo_esperado, token_atual):
+    print("Houve um problema na linha {} na posicao {}: Deveria ter um {} no lugar de {}.".format(token_atual.linha, token_atual.pos, tipo_esperado, token_atual.tipo))
+    exit(1) 
+
+  def erroDuplicado(self, token_atual):
+    print("Houve um problema na linha {} na posicao {}: ID não pode ser declarado novamente.".format(token_atual.linha, token_atual.pos))
+    exit(1) 
 
   def programa(self):
     return self.declaracaoLista()
@@ -24,37 +43,34 @@ class Parser:
   def declaracaoLista(self):
     no = self.declaracao()
     
-    p = no
-    while self.tokens[0].tipo == TokenType.INT or self.tokens[0].tipo == TokenType.VOID:
+    no_aux = no
+    while self.token_atual.tipo == TokenType.INT or self.token_atual.tipo == TokenType.VOID:
       q = self.declaracao()
-      p.sibling = q
-      p = q
+      no_aux.sibling = q
+      no_aux = q
 
     return no
 
   def declaracao(self):
     no = Node()
-    no.filhos.append(self.tipoEspecificador())
-    id_node = Node(self.tokens[1], 'ID')
-    id_line = self.tokens[2]
-    self.validaToken(TokenType.ID)
-    no.filhos.append(id_node)
+    no.add(self.tipoEspecificador())
     
-    if self.tokens[0].tipo == TokenType.PARENTESE_ABRE:  
-      self.ids_declarados.append([])
+    id_node = Node(self.tokens[1], TokenType.ID)
+    self.validaToken(TokenType.ID)
+    no.add(id_node)
+
+    if self.token_atual.tipo == TokenType.PARENTESE_ABRE:  
       self.validaToken(TokenType.PARENTESE_ABRE)
       p = self.params()
       params = []
       for param in p.filhos:
         params.append(param.filhos[1].token)
       self.validaToken(TokenType.PARENTESE_FECHA)
-      no.filhos.append(p)
-      self.ids_declarados[-1] += params
-      no.filhos.append(self.compostoDecl())
+      no.add(p)
+      no.add(self.compostoDecl())
       no.tipo = BNFType.FUN_DECLARACAO
-      self.ids_declarados.pop()
     else: 
-      if self.tokens[0].tipo == TokenType.COLCHETE_ABRE:
+      if self.token_atual.tipo == TokenType.COLCHETE_ABRE:
         self.validaToken(TokenType.COLCHETE_ABRE)
         self.validaToken(TokenType.NUM)
         self.validaToken(TokenType.COLCHETE_FECHA)
@@ -62,305 +78,293 @@ class Parser:
       no.tipo = BNFType.VAR_DECLARACAO
 
       if self.verificaDeclaracao(id_node.token):
-        print(f'Erro na linha {id_line}: Variável {id_node.token} não pode ser declarada novamente')
-        exit(1)
-      self.ids_declarados[-1].append(id_node.token)
+        self.erroDuplicado(id_node.token)
 
     return no
 
   def tipoEspecificador(self):
-    no = Node()
-    no.tipo = BNFType.TIPO_ESPECIFICADOR
-
-    if self.tokens[0].tipo == TokenType.INT:
+    no = Node(None, BNFType.TIPO_ESPECIFICADOR)
+    
+    if self.token_atual.tipo == TokenType.INT:
       self.validaToken(TokenType.INT)
-      no.token = 'int'
-    elif self.tokens[0].tipo == TokenType.VOID:
+      no.token = TokenType.INT
+    elif self.token_atual.tipo == TokenType.VOID:
       self.validaToken(TokenType.VOID)
-      no.token = 'void'
+      no.token = TokenType.VOID
+
     return no
 
   def params(self):
-    no = Node()
-    no.tipo = BNFType.PARAMS
-    if self.tokens[0].tipo == TokenType.VOID:
+    no = Node(None, BNFType.PARAMS)
+    
+    if self.token_atual.tipo == TokenType.VOID:
       self.validaToken(TokenType.VOID)
     else:
       no.filhos += self.paramLista()
+    
     return no
 
   def paramLista(self):
     params = []
     no = self.param()
     params.append(no)
-    while self.tokens[0].tipo == TokenType.VIRGULA:
+    
+    while self.token_atual.tipo == TokenType.VIRGULA:
       self.validaToken(TokenType.VIRGULA)
       q = self.param()
       params.append(q)
+
     return params
 
   def param(self):
     no = Node()
-    no.filhos.append(self.tipoEspecificador())
-    id_node = Node()
-    id_node.tipo = 'ID'
-    id_node.token = self.tokens[1]
+    no.add(self.tipoEspecificador())
+    id_node = Node(self.tokens[1], TokenType.ID)
     self.validaToken(TokenType.ID)
-    no.filhos.append(id_node)
+    no.add(id_node)
     no.token = self.tokens[1]
-    if self.tokens[0].tipo == TokenType.COLCHETE_ABRE:
+    
+    if self.token_atual.tipo == TokenType.COLCHETE_ABRE:
       self.validaToken(TokenType.COLCHETE_ABRE)
       self.validaToken(TokenType.COLCHETE_FECHA)
     no.tipo = BNFType.PARAM
+    
     return no
 
   def compostoDecl(self):
-    no = Node()
-    no.tipo = BNFType.COMPOSTO_DECL
+    no = Node(None, BNFType.COMPOSTO_DECL)
     self.validaToken(TokenType.CHAVE_ABRE)
-    self.ids_declarados.append([])
     no.filhos += self.localDeclaracoes()
     no.filhos += self.statement_list()
     self.validaToken(TokenType.CHAVE_FECHA)
-    self.ids_declarados.pop()
+    
     return no
 
   def localDeclaracoes(self):
     declarations = []
-    while self.tokens[0].tipo == TokenType.INT or self.tokens[0].tipo == TokenType.VOID:
-      no = Node()
-      no.tipo = BNFType.VAR_DECLARACAO
-      no.filhos.append(self.tipoEspecificador())
-      id_node = Node()
-      id_node.tipo = 'ID'
-      id_node.token = self.tokens[1]
-      id_line = self.tokens[2]
+
+    while self.token_atual.tipo == TokenType.INT or self.token_atual.tipo == TokenType.VOID:
+      no = Node(None, BNFType.VAR_DECLARACAO)
+      no.add(self.tipoEspecificador())
+      id_node = Node(self.tokens[1], TokenType.ID)
       self.validaToken(TokenType.ID)
-      no.filhos.append(id_node)
+      no.add(id_node)
       
       if self.verificaDeclaracao(id_node.token):
-        print(f'Erro na linha {id_line}: Variável {id_node.token} não pode ser declarada novamente')
-        exit(1)
-      self.ids_declarados[-1].append(id_node.token)
+        self.erroDuplicado(id_node.token)
       
-      if self.tokens[0].tipo == TokenType.COLCHETE_ABRE:
+      if self.token_atual.tipo == TokenType.COLCHETE_ABRE:
         self.validaToken(TokenType.COLCHETE_ABRE)
         self.validaToken(TokenType.NUM)
         self.validaToken(TokenType.COLCHETE_FECHA)
+
       self.validaToken(TokenType.PONTO_VIRGULA)
       declarations.append(no)
+
     return declarations
 
   def statement_list(self):
     statements = []
-    while (self.tokens[0].tipo == TokenType.PONTO_VIRGULA or self.tokens[0].tipo == TokenType.ID or
-        self.tokens[0].tipo == TokenType.PARENTESE_ABRE or self.tokens[0].tipo == TokenType.NUM or
-        self.tokens[0].tipo == TokenType.RETURN or self.tokens[0].tipo == TokenType.CHAVE_ABRE or
-        self.tokens[0].tipo == TokenType.IF or self.tokens[0].tipo == TokenType.WHILE):
+    while (self.token_atual.tipo == TokenType.PONTO_VIRGULA or self.token_atual.tipo == TokenType.ID or
+        self.token_atual.tipo == TokenType.PARENTESE_ABRE or self.token_atual.tipo == TokenType.NUM or
+        self.token_atual.tipo == TokenType.RETURN or self.token_atual.tipo == TokenType.CHAVE_ABRE or
+        self.token_atual.tipo == TokenType.IF or self.token_atual.tipo == TokenType.WHILE):
       statements.append(self.statement())
     
     return statements
 
   def statement(self):
-    if self.tokens[0].tipo == TokenType.RETURN:
+    if self.token_atual.tipo == TokenType.RETURN:
       return self.retornoDecl()
-    elif self.tokens[0].tipo == TokenType.CHAVE_ABRE:
+    elif self.token_atual.tipo == TokenType.CHAVE_ABRE:
       self.compostoDecl()
-    elif self.tokens[0].tipo == TokenType.IF:
+    elif self.token_atual.tipo == TokenType.IF:
       return self.selecaoDecl()
-    elif self.tokens[0].tipo == TokenType.WHILE:
+    elif self.token_atual.tipo == TokenType.WHILE:
       return self.iteracaoDecl()
     else:
       return self.expressaoDecl()
 
   def selecaoDecl(self):
-    no = Node()
-    no.tipo = BNFType.SELECAO_DECL
+    no = Node(None, BNFType.SELECAO_DECL)
     self.validaToken(TokenType.IF)
     self.validaToken(TokenType.PARENTESE_ABRE)
-    no.filhos.append(self.expressao())
+    no.add(self.expressao())
     self.validaToken(TokenType.PARENTESE_FECHA)
-    no.filhos.append(self.statement())
-    if self.tokens[0].tipo == TokenType.ELSE:
+    no.add(self.statement())
+    
+    if self.token_atual.tipo == TokenType.ELSE:
       self.validaToken(TokenType.ELSE)
-      no.filhos.append(self.statement())
+      no.add(self.statement())
+    
     return no
 
   def iteracaoDecl(self):
-    no = Node()
-    no.tipo = BNFType.ITERACAO_DECL
+    no = Node(None, BNFType.ITERACAO_DECL)
     self.validaToken(TokenType.WHILE)
     self.validaToken(TokenType.PARENTESE_ABRE)
-    no.filhos.append(self.expressao())
+    no.add(self.expressao())
     self.validaToken(TokenType.PARENTESE_FECHA)
-    no.filhos.append(self.statement())
+    no.add(self.statement())
+    
     return no
 
   def retornoDecl(self):
-    no = Node()
-    no.tipo = BNFType.RETORNO_DECL
+    no = Node(None, BNFType.RETORNO_DECL)
     self.validaToken(TokenType.RETURN)
-    if (self.tokens[0].tipo == TokenType.PONTO_VIRGULA or self.tokens[0].tipo == TokenType.ID or
-          self.tokens[0].tipo == TokenType.PARENTESE_ABRE or self.tokens[0].tipo == TokenType.NUM):
-      no.filhos.append(self.expressao())
+    
+    if (self.token_atual.tipo == TokenType.PONTO_VIRGULA or self.token_atual.tipo == TokenType.ID or
+        self.token_atual.tipo == TokenType.PARENTESE_ABRE or self.token_atual.tipo == TokenType.NUM):
+      no.add(self.expressao())
     self.validaToken(TokenType.PONTO_VIRGULA)
+    
     return no
 
   def expressaoDecl(self):
-    no = Node()
-    no.tipo = BNFType.EXPRESSAO_DECL
-    if (self.tokens[0].tipo == TokenType.PONTO_VIRGULA or self.tokens[0].tipo == TokenType.ID or
-          self.tokens[0].tipo == TokenType.PARENTESE_ABRE or self.tokens[0].tipo == TokenType.NUM):
-      no.filhos.append(self.expressao())
+    no = Node(None, BNFType.EXPRESSAO_DECL)
+    
+    if (self.token_atual.tipo == TokenType.PONTO_VIRGULA or self.token_atual.tipo == TokenType.ID or
+        self.token_atual.tipo == TokenType.PARENTESE_ABRE or self.token_atual.tipo == TokenType.NUM):
+      no.add(self.expressao())
     self.validaToken(TokenType.PONTO_VIRGULA)
+    
     return no
 
   def expressao(self):
-    no = Node()
-    no.tipo = BNFType.EXPRESSAO
+    no = Node(None, BNFType.EXPRESSAO)
     p = no
-    while self.tokens[0].tipo == TokenType.ID:
+
+    while self.token_atual.tipo == TokenType.ID:
       q = Node()
       q.token = self.tokens[1]
       token_anterior = self.token
-      id_line = self.tokens[2]
       self.validaToken(TokenType.ID)
-      if self.tokens[0].tipo == TokenType.COLCHETE_ABRE:
+      
+      if self.token_atual.tipo == TokenType.COLCHETE_ABRE:
         self.validaToken(TokenType.COLCHETE_ABRE)
-        q.filhos.append(self.expressao())
+        q.add(self.expressao())
         self.validaToken(TokenType.COLCHETE_FECHA)
-        if self.tokens[0].tipo == TokenType.token:
+        if self.token_atual.tipo == TokenType.token:
           self.validaToken(TokenType.token)
       else:
-        if self.tokens[0].tipo == TokenType.token:
+        if self.token_atual.tipo == TokenType.token:
           self.validaToken(TokenType.token)
         else:
           self.token_anterior = token_anterior
           break
-      q.tipo = 'ASSIGN'
-      p.filhos.append(q)
+      q.tipo = TokenType.ATRIBUI
+      p.add(q)
       p = q
       if not self.verificaDeclaracao(p.token):
-        print(f'Erro na linha {id_line}: Variável {p.token} sendo utilizada antes de sua declaração')
-        exit(1)
-    p.filhos.append(self.simplesExpressao())
+        self.erroDuplicado(p.token)
+    
+    p.add(self.simplesExpressao())
     return no
 
   def simplesExpressao(self):
-    no = Node()
-    no.tipo = BNFType.SIMPLES_EXPRESSAO
-    no.filhos.append(self.somaExpressao())
-    if (self.tokens[0].tipo == TokenType.MAIOR or self.tokens[0].tipo == TokenType.MAIOR_IGUAL or
-        self.tokens[0].tipo == TokenType.IGUAL or self.tokens[0].tipo == TokenType.MENOR or
-        self.tokens[0].tipo == TokenType.MENOR_IGUAL or self.tokens[0].tipo == TokenType.DIF):
-      no.filhos.append(self.relacional())
-      no.filhos.append(self.somaExpressao())
+    no = Node(None, BNFType.SIMPLES_EXPRESSAO)
+    no.add(self.somaExpressao())
+    if (self.token_atual.tipo == TokenType.MAIOR or self.token_atual.tipo == TokenType.MAIOR_IGUAL or
+        self.token_atual.tipo == TokenType.IGUAL or self.token_atual.tipo == TokenType.MENOR or
+        self.token_atual.tipo == TokenType.MENOR_IGUAL or self.token_atual.tipo == TokenType.DIF):
+      no.add(self.relacional())
+      no.add(self.somaExpressao())
+
     return no
 
   def relacional(self):
-    no = Node()
-    no.tipo = BNFType.RELACIONAL
-    if self.tokens[0].tipo == TokenType.MAIOR:
-      no.token = '>'
+    no = Node(None, BNFType.RELACIONAL)
+    if self.token_atual.tipo == TokenType.MAIOR:
+      no.token = TokenType.MAIOR
       self.validaToken(TokenType.MAIOR)
-    elif self.tokens[0].tipo == TokenType.MAIOR_IGUAL:
-      no.token = '>='
+    elif self.token_atual.tipo == TokenType.MAIOR_IGUAL:
+      no.token = TokenType.MAIOR_IGUAL
       self.validaToken(TokenType.MAIOR_IGUAL)
-    elif self.tokens[0].tipo == TokenType.IGUAL:
-      no.token = '=='
+    elif self.token_atual.tipo == TokenType.IGUAL:
+      no.token = TokenType.IGUAL
       self.validaToken(TokenType.IGUAL)
-    elif self.tokens[0].tipo == TokenType.MENOR:
-      no.token = '<'
+    elif self.token_atual.tipo == TokenType.MENOR:
+      no.token = TokenType.MENOR
       self.validaToken(TokenType.MENOR)
-    elif self.tokens[0].tipo == TokenType.MENOR_IGUAL:
-      no.token = '<='
+    elif self.token_atual.tipo == TokenType.MENOR_IGUAL:
+      no.token = TokenType.MENOR_IGUAL
       self.validaToken(TokenType.MENOR_IGUAL)
-    elif self.tokens[0].tipo == TokenType.DIF:
-      no.token = '!='
+    elif self.token_atual.tipo == TokenType.DIF:
+      no.token = TokenType.DIF
       self.validaToken(TokenType.DIF)
+
     return no
 
   def somaExpressao(self):
-    no = Node()
-    no.tipo = BNFType.SOMA_EXPRESSAO
-    no.filhos.append(self.termo())
-    if self.tokens[0].tipo == TokenType.MAIS or self.tokens[0].tipo == TokenType.MENOS:
-      no.filhos.append(self.soma())
-      no.filhos.append(self.termo())
+    no = Node(None, BNFType.SOMA_EXPRESSAO)
+    no.add(self.termo())
+    if self.token_atual.tipo == TokenType.MAIS or self.token_atual.tipo == TokenType.MENOS:
+      no.add(self.soma())
+      no.add(self.termo())
+
     return no
 
   def soma(self):
-    no = Node()
-    no.tipo = BNFType.SOMA
-    if self.tokens[0].tipo == TokenType.MAIS:
-      no.token = '+'
-      self.validaToken(TokenType.MAIS)
-    elif self.tokens[0].tipo == TokenType.MENOS:
-      no.token = '-'
-      self.validaToken(TokenType.MENOS)
+    no = Node(self.token_atual.tipo, BNFType.SOMA)
+    self.validaToken(self.token_atual.tipo)
+
     return no
 
   def termo(self):
-    no = Node()
-    no.tipo = BNFType.TERMO 
-    no.filhos.append(self.fator())
-    while self.tokens[0].tipo == TokenType.MULT or self.tokens[0].tipo == TokenType.DIV:
-      no.filhos.append(self.mult())
-      no.filhos.append(self.fator())
+    no = Node(None, BNFType.TERMO)
+    no.add(self.fator()) 
+    while self.token_atual.tipo == TokenType.MULT or self.token_atual.tipo == TokenType.DIV:
+      no.add(self.mult())
+      no.add(self.fator())
+
     return no
 
   def mult(self):
-    no = Node()
-    no.tipo = BNFType.MULT
-    if self.tokens[0].tipo == TokenType.MULT:
-      no.token = '*'
-      self.validaToken(TokenType.MULT)
-    elif self.tokens[0].tipo == TokenType.DIV:
-      no.token = '/'
-      self.validaToken(TokenType.DIV)
+    no = Node(self.token_atual.tipo, BNFType.MULT)
+    self.validaToken(self.token_atual.tipo)
+
     return no
 
   def fator(self):
-    no = Node()
-    no.tipo = BNFType.FATOR
-    if self.tokens[0].tipo == TokenType.ID or self.token_anterior[0].tipo == TokenType.ID:
-      p = Node()
-      p.token = self.token_anterior[1]
+    no = Node(None, BNFType.FATOR)
+    
+    if self.token_atual.tipo == TokenType.ID or self.token_anterior[0].tipo == TokenType.ID:
+      p = Node(self.token_anterior[1])
       if not self.token_anterior[0] == TokenType.ID:
         p.token = self.tokens[1]
         self.validaToken(TokenType.ID)
       self.token_anterior = [None, None, None]
-      if self.tokens[0].tipo == TokenType.PARENTESE_ABRE:  # call
+      
+      if self.token_atual.tipo == TokenType.PARENTESE_ABRE:
         p.tipo = BNFType.ATIVACAO
         self.validaToken(TokenType.PARENTESE_ABRE)
-        p.filhos.append(self.args())
+        p.add(self.args())
         self.validaToken(TokenType.PARENTESE_FECHA)
       else: 
         p.tipo = BNFType.VAR
-        if self.tokens[0].tipo == TokenType.COLCHETE_ABRE:
+        if self.token_atual.tipo == TokenType.COLCHETE_ABRE:
           self.validaToken(TokenType.COLCHETE_ABRE)
-          p.filhos.append(self.expressao())
+          p.add(self.expressao())
           self.validaToken(TokenType.COLCHETE_FECHA)
-      no.filhos.append(p)
-    elif self.tokens[0].tipo == TokenType.PARENTESE_ABRE:
+      no.add(p)
+    elif self.token_atual.tipo == TokenType.PARENTESE_ABRE:
       self.validaToken(TokenType.PARENTESE_ABRE)
-      no.filhos.append(self.expressao())
+      no.add(self.expressao())
       self.validaToken(TokenType.PARENTESE_FECHA)
-    elif self.tokens[0].tipo == TokenType.NUM:
-      p = Node()
-      p.tipo = 'NUM'
-      p.token = self.tokens[1]
-      no.filhos.append(p)
+    elif self.token_atual.tipo == TokenType.NUM:
+      no.add(Node(self.tokens[1], TokenType.NUM))
       self.validaToken(TokenType.NUM)
+
     return no
 
   def args(self):
-    no = Node()
-    no.tipo = BNFType.ARGS
-    no.filhos.append(self.expressao())
-    while self.tokens[0].tipo == TokenType.VIRGULA:
+    no = Node(None, BNFType.ARGS)
+    no.add(self.expressao())
+
+    while self.token_atual.tipo == TokenType.VIRGULA:
       self.validaToken(TokenType.VIRGULA)
-      no.filhos.append(self.expressao())
+      no.add(self.expressao())
+
     return no
 
   def verificaDeclaracao(self, valor):
