@@ -15,14 +15,17 @@ def leArquivo(nome):
 
 def main():
   nome_arquivo = 'main.txt'
+
   if len(sys.argv) == 2:
     nome_arquivo = sys.argv[1]
+  
   programa = leArquivo(nome_arquivo)
   tokens = Scanner(programa).geraTokens()
   tokens_validos = [token for token in tokens if token.tipo != TokenType.COMENTARIO]
   parser = Parser(tokens_validos)
   parser.exe()
-  print("Tokens", tokens)
+  
+  # print("Tokens", tokens)
   print("Numero de tokens: {}".format(len(tokens)))
 
 if __name__ == "__main__":

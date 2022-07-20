@@ -1,4 +1,5 @@
-from token_type import PALAVRAS_RESERVADAS, Token, TokenType
+from token_lib import Token
+from token_type import PALAVRAS_RESERVADAS, TokenType
 from string import ascii_letters
 
 class Scanner:
@@ -14,8 +15,8 @@ class Scanner:
     self.linha_cont = 0
 
   def avancaLinha(self):
-    if self.linha_cont+1 > 0:
-      print("{}: {}".format(self.linha_cont+1, self.arquivo[self.linha_cont]))
+    # if self.linha_cont+1 > 0:
+    #   print("{}: {}".format(self.linha_cont+1, self.arquivo[self.linha_cont]))
     
     try:
       nova_linha = self.linha_cont+1
