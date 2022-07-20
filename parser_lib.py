@@ -27,7 +27,7 @@ class Parser:
 
       return token
     else:
-      self.mostraErro(token_esperado, self.token_atual)
+      self.erroValidacao(token_esperado, self.token_atual)
 
   def erroValidacao(self, tipo_esperado, token_atual):
     print("Houve um problema na linha {} na posicao {}: Deveria ter um {} no lugar de {}.".format(token_atual.linha, token_atual.pos, tipo_esperado, token_atual.tipo))
@@ -83,15 +83,8 @@ class Parser:
     return no
 
   def tipoEspecificador(self):
-    no = Node(None, BNFType.TIPO_ESPECIFICADOR)
-    
-    if self.token_atual.tipo == TokenType.INT:
-      self.validaToken(TokenType.INT)
-      no.token = TokenType.INT
-    elif self.token_atual.tipo == TokenType.VOID:
-      self.validaToken(TokenType.VOID)
-      no.token = TokenType.VOID
-
+    no = Node(self.token_atual, BNFType.TIPO_ESPECIFICADOR)
+    self.validaToken(self.token_atual.tipo)
     return no
 
   def params(self):
@@ -237,18 +230,18 @@ class Parser:
     while self.token_atual.tipo == TokenType.ID:
       q = Node()
       q.token = self.tokens[1]
-      token_anterior = self.token
+      token_anterior = self.tokens
       self.validaToken(TokenType.ID)
       
       if self.token_atual.tipo == TokenType.COLCHETE_ABRE:
         self.validaToken(TokenType.COLCHETE_ABRE)
         q.add(self.expressao())
         self.validaToken(TokenType.COLCHETE_FECHA)
-        if self.token_atual.tipo == TokenType.token:
-          self.validaToken(TokenType.token)
+        if self.token_atual.tipo == TokenType.ATRIBUI:
+          self.validaToken(TokenType.ATRIBUI)
       else:
-        if self.token_atual.tipo == TokenType.token:
-          self.validaToken(TokenType.token)
+        if self.token_atual.tipo == TokenType.ATRIBUI:
+          self.validaToken(TokenType.ATRIBUI)
         else:
           self.token_anterior = token_anterior
           break
@@ -305,7 +298,7 @@ class Parser:
     return no
 
   def soma(self):
-    no = Node(self.token_atual.tipo, BNFType.SOMA)
+    no = Node(self.token_atual, BNFType.SOMA)
     self.validaToken(self.token_atual.tipo)
 
     return no
@@ -320,7 +313,7 @@ class Parser:
     return no
 
   def mult(self):
-    no = Node(self.token_atual.tipo, BNFType.MULT)
+    no = Node(self.token_atual, BNFType.MULT)
     self.validaToken(self.token_atual.tipo)
 
     return no
@@ -330,7 +323,7 @@ class Parser:
     
     if self.token_atual.tipo == TokenType.ID or self.token_anterior[0].tipo == TokenType.ID:
       p = Node(self.token_anterior[1])
-      if not self.token_anterior[0] == TokenType.ID:
+      if not self.token_anterior[0].tipo == TokenType.ID:
         p.token = self.tokens[1]
         self.validaToken(TokenType.ID)
       self.token_anterior = [None, None, None]
