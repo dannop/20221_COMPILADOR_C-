@@ -1,10 +1,10 @@
 class Node:
-  def __init__(self, token = None, tipo = None, fihos = None):
+  def __init__(self, token = None, tipo = None, filhos = None):
     if fihos is None:
         fihos = []
     self.token = token
     self.tipo = tipo
-    self.filhos = fihos
+    self.filhos = filhos
   
   def __repr__(self):
     return "{}: {} - Filhos {} \n".format(self.token, self.tipo, len(self.filhos))
