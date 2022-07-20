@@ -7,7 +7,7 @@ class Parser:
     self.tokens = tokens
     self.token_index = 0
     self.token_atual = self.tokens[self.token_index]
-    self.token_anterior = [None, None, None]
+    self.tokens_sequencia = []
     self.ids_declarados = []
     
   def avancaToken(self):
@@ -17,17 +17,17 @@ class Parser:
 
     return self.token_atual
 
-  def validaToken(self, token_esperado):
-    print("Token Atual", self.token_atual)
-    if self.token_atual.tipo == token_esperado:
-      if token_esperado == TokenType.ID:
-        self.ids_declarados.append(self.token_atual)
+  def validaToken(self, token_tipo_esperado):
+    # print("Token Atual", self.token_atual)
+    if self.token_atual.tipo == token_tipo_esperado:
+      if token_tipo_esperado == TokenType.ID:
+        self.ids_declarados.append(self.token_atual.valor)
       token = self.token_atual
       self.avancaToken()
 
       return token
     else:
-      self.erroValidacao(token_esperado, self.token_atual)
+      self.erroValidacao(token_tipo_esperado, self.token_atual)
 
   def erroValidacao(self, tipo_esperado, token_atual):
     print("Houve um problema na linha {} na posicao {}: Deveria ter um {} no lugar de {}.".format(token_atual.linha, token_atual.pos, tipo_esperado, token_atual.tipo))
@@ -38,6 +38,7 @@ class Parser:
     exit(1) 
 
   def programa(self):
+    self.removeComentarios()
     return self.declaracaoLista()
 
   def declaracaoLista(self):
@@ -45,11 +46,11 @@ class Parser:
     
     no_aux = no
     while self.token_atual.tipo == TokenType.INT or self.token_atual.tipo == TokenType.VOID:
-      q = self.declaracao()
-      no_aux.sibling = q
-      no_aux = q
+      no_temp = self.declaracao()
+      no_aux.sibling = no_temp
+      no_aux = no_temp
 
-    return no
+    print("Compilado com sucesso!")
 
   def declaracao(self):
     no = Node()
@@ -61,12 +62,12 @@ class Parser:
 
     if self.token_atual.tipo == TokenType.PARENTESE_ABRE:  
       self.validaToken(TokenType.PARENTESE_ABRE)
-      p = self.params()
+      no_aux = self.params()
       params = []
-      for param in p.filhos:
+      for param in no_aux.filhos:
         params.append(param.filhos[1].token)
       self.validaToken(TokenType.PARENTESE_FECHA)
-      no.add(p)
+      no.add(no_aux)
       no.add(self.compostoDecl())
       no.tipo = BNFType.FUN_DECLARACAO
     else: 
@@ -77,7 +78,7 @@ class Parser:
       self.validaToken(TokenType.PONTO_VIRGULA)
       no.tipo = BNFType.VAR_DECLARACAO
 
-      if self.verificaDeclaracao(id_node.token):
+      if self.verificaDeclaracao(id_node.token).valor:
         self.erroDuplicado(id_node.token)
 
     return no
@@ -98,14 +99,14 @@ class Parser:
     return no
 
   def paramLista(self):
-    params = []
     no = self.param()
+    params = []
     params.append(no)
     
     while self.token_atual.tipo == TokenType.VIRGULA:
       self.validaToken(TokenType.VIRGULA)
-      q = self.param()
-      params.append(q)
+      no_temp = self.param()
+      params.append(no_temp)
 
     return params
 
@@ -128,7 +129,7 @@ class Parser:
     no = Node(None, BNFType.COMPOSTO_DECL)
     self.validaToken(TokenType.CHAVE_ABRE)
     no.filhos += self.localDeclaracoes()
-    no.filhos += self.statement_list()
+    no.filhos += self.statementLista()
     self.validaToken(TokenType.CHAVE_FECHA)
     
     return no
@@ -143,7 +144,7 @@ class Parser:
       self.validaToken(TokenType.ID)
       no.add(id_node)
       
-      if self.verificaDeclaracao(id_node.token):
+      if self.verificaDeclaracao(id_node.token.valor):
         self.erroDuplicado(id_node.token)
       
       if self.token_atual.tipo == TokenType.COLCHETE_ABRE:
@@ -156,7 +157,7 @@ class Parser:
 
     return declarations
 
-  def statement_list(self):
+  def statementLista(self):
     statements = []
     while (self.token_atual.tipo == TokenType.PONTO_VIRGULA or self.token_atual.tipo == TokenType.ID or
         self.token_atual.tipo == TokenType.PARENTESE_ABRE or self.token_atual.tipo == TokenType.NUM or
@@ -225,17 +226,17 @@ class Parser:
 
   def expressao(self):
     no = Node(None, BNFType.EXPRESSAO)
-    p = no
+    no_aux = no
 
     while self.token_atual.tipo == TokenType.ID:
-      q = Node()
-      q.token = self.tokens[1]
-      token_anterior = self.tokens
+      no_temp = Node()
+      no_temp.token = self.tokens[1]
+      tokens_sequencia = self.tokens
       self.validaToken(TokenType.ID)
       
       if self.token_atual.tipo == TokenType.COLCHETE_ABRE:
         self.validaToken(TokenType.COLCHETE_ABRE)
-        q.add(self.expressao())
+        no_temp.add(self.expressao())
         self.validaToken(TokenType.COLCHETE_FECHA)
         if self.token_atual.tipo == TokenType.ATRIBUI:
           self.validaToken(TokenType.ATRIBUI)
@@ -243,15 +244,17 @@ class Parser:
         if self.token_atual.tipo == TokenType.ATRIBUI:
           self.validaToken(TokenType.ATRIBUI)
         else:
-          self.token_anterior = token_anterior
+          self.tokens_sequencia = tokens_sequencia
           break
-      q.tipo = TokenType.ATRIBUI
-      p.add(q)
-      p = q
-      if not self.verificaDeclaracao(p.token):
-        self.erroDuplicado(p.token)
+
+      no_temp.tipo = TokenType.ATRIBUI
+      no_aux.add(no_temp)
+      no_aux = no_temp
+
+      if not self.verificaDeclaracao(no_aux.token.valor):
+        self.erroDuplicado(no_aux.token)
     
-    p.add(self.simplesExpressao())
+    no_aux.add(self.simplesExpressao())
     return no
 
   def simplesExpressao(self):
@@ -321,25 +324,26 @@ class Parser:
   def fator(self):
     no = Node(None, BNFType.FATOR)
     
-    if self.token_atual.tipo == TokenType.ID or self.token_anterior[0].tipo == TokenType.ID:
-      p = Node(self.token_anterior[1])
-      if not self.token_anterior[0].tipo == TokenType.ID:
-        p.token = self.tokens[1]
+    if self.token_atual.tipo == TokenType.ID or self.tokens_sequencia[0].tipo == TokenType.ID:
+      no_aux = Node(self.tokens_sequencia[1])
+
+      if not self.tokens_sequencia[0].tipo == TokenType.ID:
+        no_aux.token = self.tokens[1]
         self.validaToken(TokenType.ID)
-      self.token_anterior = [None, None, None]
+      self.tokens_sequencia = []
       
       if self.token_atual.tipo == TokenType.PARENTESE_ABRE:
-        p.tipo = BNFType.ATIVACAO
+        no_aux.tipo = BNFType.ATIVACAO
         self.validaToken(TokenType.PARENTESE_ABRE)
-        p.add(self.args())
+        no_aux.add(self.args())
         self.validaToken(TokenType.PARENTESE_FECHA)
       else: 
-        p.tipo = BNFType.VAR
+        no_aux.tipo = BNFType.VAR
         if self.token_atual.tipo == TokenType.COLCHETE_ABRE:
           self.validaToken(TokenType.COLCHETE_ABRE)
-          p.add(self.expressao())
+          no_aux.add(self.expressao())
           self.validaToken(TokenType.COLCHETE_FECHA)
-      no.add(p)
+      no.add(no_aux)
     elif self.token_atual.tipo == TokenType.PARENTESE_ABRE:
       self.validaToken(TokenType.PARENTESE_ABRE)
       no.add(self.expressao())
@@ -361,6 +365,9 @@ class Parser:
     return no
 
   def verificaDeclaracao(self, valor):
-    return valor in [x for scope in self.ids_declarados for x in scope]
+    return valor in self.ids_declarados
 
+  def removeComentarios(self):
+    tokens_validos = [token for token in self.tokens if token.tipo != TokenType.COMENTARIO]
+    self.tokens = tokens_validos
   
