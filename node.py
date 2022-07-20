@@ -5,6 +5,7 @@ class Node:
     self.token = token
     self.tipo = tipo
     self.filhos = fihos
+    self.outros = []
   
   def __repr__(self):
     return "{}: {} - Filhos {} \n".format(self.token, self.tipo, len(self.filhos))

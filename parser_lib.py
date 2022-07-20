@@ -51,10 +51,11 @@ class Parser:
     no = self.declaracao()
     
     while self.token_atual.tipo == TokenType.INT or self.token_atual.tipo == TokenType.VOID:
-      no = self.declaracao()
+      no.outros.append(self.declaracao())
       
     if not self.houve_erro:
       print("Compilado com sucesso!")
+
     return no
 
   def declaracao(self):
