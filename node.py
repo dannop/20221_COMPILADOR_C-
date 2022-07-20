@@ -1,7 +1,7 @@
 class Node:
   def __init__(self, token = None, tipo = None, filhos = None):
-    if fihos is None:
-        fihos = []
+    if filhos is None:
+        filhos = []
     self.token = token
     self.tipo = tipo
     self.filhos = filhos
