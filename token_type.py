@@ -39,3 +39,12 @@ PALAVRAS_RESERVADAS = {
   "int": TokenType.INT, 
   "return": TokenType.RETURN
 }
+
+OPERADORES = {
+  ">": TokenType.MAIOR,
+  ">=": TokenType.MAIOR_IGUAL,
+  "==": TokenType.IGUAL,
+  "<": TokenType.MENOR,
+  "<=": TokenType.MENOR_IGUAL,
+  "!=": TokenType.DIF,
+}
