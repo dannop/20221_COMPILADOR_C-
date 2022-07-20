@@ -45,13 +45,17 @@ class Parser:
     return token.valor in self.ids_declarados
   
   def programa(self):
-    return self.declaracaoLista()
+    no = Node(None, BNFType.PROGRAMA)
+    no.add(self.declaracaoLista())
+    
+    return no
 
   def declaracaoLista(self):
-    no = self.declaracao()
+    no = Node(None, BNFType.DECLARACAO_LISTA)
+    no.add(self.declaracao())
     
     while self.token_atual.tipo == TokenType.INT or self.token_atual.tipo == TokenType.VOID:
-      no.outros.append(self.declaracao())
+      no.add(self.declaracao())
       
     if not self.houve_erro:
       print("Compilado com sucesso!")
