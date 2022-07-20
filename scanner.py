@@ -149,7 +149,7 @@ class Scanner:
       if valor in list(PALAVRAS_RESERVADAS.keys()):
         tipo = PALAVRAS_RESERVADAS[valor]
 
-    return Token(valor, tipo, self.linha_cont, self.linha_pos)
+    return Token(valor, tipo, self.linha_cont+1, self.linha_pos+1)
 
   def geraTokens(self):
     while self.linha_cont < self.arquivo_linhas:

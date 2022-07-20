@@ -1,6 +1,8 @@
 import sys
+from parser import Parser
 
 from scanner import Scanner
+from token_type import TokenType
 
 def leArquivo(nome):
   try:
@@ -16,6 +18,9 @@ def main():
     nome_arquivo = sys.argv[1]
     programa = leArquivo(nome_arquivo)
     tokens = Scanner(programa).geraTokens()
+    tokens_validos = [token for token in tokens if token.type != TokenType.COMENTARIO]
+    parser = Parser(tokens_validos)
+    parser.exe()
     print("Tokens", tokens)
     print("Numero de tokens: {}".format(len(tokens)))
   else:
