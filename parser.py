@@ -6,7 +6,7 @@ class Parser:
   def __init__(self, tokens):
     self.tokens = tokens
     self.token = None
-    self.prevToken = [None, None, None]
+    self.token_anterior = [None, None, None]
     self.ids_declarados = []
 
   def match(self, expectedToken):
@@ -217,7 +217,7 @@ class Parser:
     while self.token[0] == TokenType.ID:
       q = Node()
       q.token = self.token[1]
-      prev_token = self.token
+      token_anterior = self.token
       id_line = self.token[2]
       self.match(TokenType.ID)
       if self.token[0] == TokenType.COLCHETE_ABRE:
@@ -230,7 +230,7 @@ class Parser:
         if self.token[0] == TokenType.token:
           self.match(TokenType.token)
         else:
-          self.prevToken = prev_token
+          self.token_anterior = token_anterior
           break
       q.tipo = 'ASSIGN'
       p.filhos.append(q)
@@ -318,13 +318,13 @@ class Parser:
   def factor(self):
     t = Node()
     t.tipo = BNFType.FATOR
-    if self.token[0] == TokenType.ID or self.prevToken[0] == TokenType.ID:
+    if self.token[0] == TokenType.ID or self.token_anterior[0] == TokenType.ID:
       p = Node()
-      p.token = self.prevToken[1]
-      if not self.prevToken[0] == TokenType.ID:
+      p.token = self.token_anterior[1]
+      if not self.token_anterior[0] == TokenType.ID:
         p.token = self.token[1]
         self.match(TokenType.ID)
-      self.prevToken = [None, None, None]
+      self.token_anterior = [None, None, None]
       if self.token[0] == TokenType.PARENTESE_ABRE:  # call
         p.tipo = BNFType.ATIVACAO
         self.match(TokenType.PARENTESE_ABRE)
