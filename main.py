@@ -1,5 +1,5 @@
 import sys
-from parserx import Parser
+from parser_lib import Parser
 
 from scanner import Scanner
 from token_type import TokenType
